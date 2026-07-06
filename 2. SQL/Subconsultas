@@ -1,0 +1,568 @@
+# 🔍 Subconsultas en SQL
+
+Una subconsulta (Subquery) es una consulta dentro de otra consulta.
+
+Su resultado se utiliza como entrada para la consulta principal.
+
+---
+
+# 📌 Definición
+
+Una subconsulta es un `SELECT` anidado dentro de otra instrucción SQL.
+
+Puede utilizarse en:
+
+- SELECT
+- FROM
+- WHERE
+- HAVING
+- INSERT
+- UPDATE
+- DELETE
+
+---
+
+# 🎯 ¿Para qué sirven?
+
+Las subconsultas permiten:
+
+- Comparar datos con otros resultados.
+- Obtener información basada en otra consulta.
+- Evitar realizar varias consultas por separado.
+- Resolver problemas complejos de manera organizada.
+
+---
+
+# 🤔 ¿Qué problema resuelven?
+
+Supongamos que tenemos una tabla de empleados.
+
+| id | nombre | salario |
+|----|---------|----------|
+|1|Ana|2500|
+|2|Luis|3200|
+|3|Pedro|1800|
+|4|Carlos|4000|
+
+Ahora queremos responder la siguiente pregunta:
+
+> ¿Qué empleados ganan más que el salario promedio?
+
+No conocemos el promedio.
+
+Primero debemos calcularlo y luego compararlo.
+
+Ahí aparece la subconsulta.
+
+---
+
+# 🧠 Analogía
+
+Imagina que un profesor pregunta:
+
+> ¿Quién obtuvo una nota mayor al promedio del salón?
+
+Primero alguien calcula el promedio.
+
+Después compara cada estudiante con ese resultado.
+
+Eso hace una subconsulta.
+
+```
+Primero
+
+Calcula el promedio
+
+↓
+
+Después
+
+Compara cada registro
+```
+
+---
+
+# 📝 Sintaxis General
+
+```sql
+SELECT columnas
+FROM tabla
+WHERE columna operador (
+    SELECT ...
+);
+```
+
+La consulta interna se ejecuta primero.
+
+Después SQL utiliza ese resultado para ejecutar la consulta principal.
+
+---
+
+# Tipos de Subconsultas
+
+## 1️⃣ Subconsulta Escalar
+
+Devuelve un único valor.
+
+Es la más utilizada.
+
+### Ejemplo
+
+Mostrar empleados cuyo salario sea mayor al promedio.
+
+```sql
+SELECT nombre, salario
+FROM empleados
+WHERE salario >
+(
+    SELECT AVG(salario)
+    FROM empleados
+);
+```
+
+Primero SQL calcula:
+
+```sql
+SELECT AVG(salario)
+FROM empleados;
+```
+
+Resultado
+
+```
+2875
+```
+
+Luego ejecuta:
+
+```sql
+SELECT nombre, salario
+FROM empleados
+WHERE salario > 2875;
+```
+
+Resultado
+
+| nombre | salario |
+|---------|----------|
+|Luis|3200|
+|Carlos|4000|
+
+---
+
+## 2️⃣ Subconsulta con IN
+
+Se utiliza cuando la subconsulta devuelve varios valores.
+
+### Ejemplo
+
+Mostrar empleados que pertenecen a departamentos activos.
+
+```sql
+SELECT nombre
+FROM empleados
+WHERE departamento_id IN
+(
+    SELECT id
+    FROM departamentos
+    WHERE activo = TRUE
+);
+```
+
+---
+
+## 3️⃣ Subconsulta con EXISTS
+
+Verifica si la subconsulta devuelve registros.
+
+Si devuelve al menos uno, el resultado es TRUE.
+
+### Ejemplo
+
+Mostrar clientes que tienen pedidos.
+
+```sql
+SELECT nombre
+FROM clientes c
+WHERE EXISTS
+(
+    SELECT *
+    FROM pedidos p
+    WHERE p.cliente_id = c.id
+);
+```
+
+---
+
+## 4️⃣ Subconsulta Correlacionada
+
+La consulta interna depende de la consulta externa.
+
+Se ejecuta una vez por cada fila.
+
+### Ejemplo
+
+Mostrar empleados cuyo salario sea mayor al promedio de su departamento.
+
+```sql
+SELECT e.nombre,
+       e.salario
+FROM empleados e
+WHERE salario >
+(
+    SELECT AVG(salario)
+    FROM empleados
+    WHERE departamento_id = e.departamento_id
+);
+```
+
+---
+
+# IN vs EXISTS
+
+## IN
+
+Compara un valor con una lista de resultados.
+
+```sql
+SELECT *
+FROM empleados
+WHERE departamento_id IN
+(
+    SELECT id
+    FROM departamentos
+);
+```
+
+---
+
+## EXISTS
+
+Comprueba si existen registros relacionados.
+
+```sql
+SELECT *
+FROM empleados e
+WHERE EXISTS
+(
+    SELECT *
+    FROM departamentos d
+    WHERE d.id = e.departamento_id
+);
+```
+
+---
+
+# ANY
+
+Compara un valor con cualquiera de los resultados obtenidos.
+
+### Ejemplo
+
+Mostrar productos cuyo precio sea mayor que al menos uno de los productos de la categoría Tecnología.
+
+```sql
+SELECT nombre
+FROM productos
+WHERE precio > ANY
+(
+    SELECT precio
+    FROM productos
+    WHERE categoria = 'Tecnología'
+);
+```
+
+---
+
+# ALL
+
+Compara un valor con todos los resultados obtenidos.
+
+### Ejemplo
+
+Mostrar empleados cuyo salario sea mayor que todos los salarios del departamento de Ventas.
+
+```sql
+SELECT nombre
+FROM empleados
+WHERE salario > ALL
+(
+    SELECT salario
+    FROM empleados
+    WHERE departamento = 'Ventas'
+);
+```
+
+---
+
+# ¿Dónde pueden utilizarse?
+
+## En WHERE
+
+```sql
+SELECT *
+FROM empleados
+WHERE salario >
+(
+SELECT AVG(salario)
+FROM empleados
+);
+```
+
+---
+
+## En FROM
+
+```sql
+SELECT promedio
+FROM
+(
+SELECT AVG(salario) AS promedio
+FROM empleados
+) t;
+```
+
+---
+
+## En SELECT
+
+```sql
+SELECT nombre,
+
+(
+SELECT AVG(salario)
+FROM empleados
+)
+
+AS promedio_empresa
+
+FROM empleados;
+```
+
+---
+
+# Tabla resumen
+
+| Tipo | Devuelve |
+|------|-----------|
+| Escalar | Un solo valor |
+| IN | Varios valores |
+| EXISTS | TRUE o FALSE |
+| Correlacionada | Depende de la consulta externa |
+| ANY | Compara con cualquiera |
+| ALL | Compara con todos |
+
+---
+
+# ⚠️ Errores comunes
+
+## ❌ Usar "=" cuando la subconsulta devuelve varios valores
+
+Incorrecto
+
+```sql
+WHERE departamento_id =
+(
+SELECT id
+FROM departamentos
+);
+```
+
+Si la subconsulta devuelve varios registros, debe utilizarse `IN`.
+
+---
+
+## ❌ Olvidar los paréntesis
+
+Incorrecto
+
+```sql
+WHERE salario >
+
+SELECT AVG(salario)
+FROM empleados;
+```
+
+Siempre deben utilizarse paréntesis.
+
+---
+
+## ❌ Utilizar EXISTS cuando realmente se necesita un valor
+
+`EXISTS` solo devuelve TRUE o FALSE.
+
+No devuelve datos.
+
+---
+
+## ❌ Confundir IN con JOIN
+
+Una subconsulta no reemplaza un JOIN.
+
+Si necesitas mostrar columnas de otra tabla, normalmente debes utilizar un JOIN.
+
+---
+
+# ✅ Buenas prácticas
+
+- Utilizar alias cuando haya varias tablas.
+- Escribir primero la subconsulta y verificar que funcione.
+- Preferir JOIN cuando necesites mostrar datos de varias tablas.
+- Utilizar EXISTS cuando solo quieras comprobar si existen registros relacionados.
+- Evitar subconsultas innecesarias si una consulta simple resuelve el problema.
+
+---
+
+# 📝 Ejercicios
+
+## Ejercicio 1
+
+Mostrar los empleados cuyo salario sea mayor al salario promedio.
+
+---
+
+## Ejercicio 2
+
+Mostrar los cursos cuya duración sea mayor al promedio de duración.
+
+---
+
+## Ejercicio 3
+
+Mostrar los clientes que tienen pedidos.
+
+---
+
+## Ejercicio 4
+
+Mostrar los estudiantes inscritos en cursos activos.
+
+---
+
+## Ejercicio 5
+
+Mostrar los productos cuyo precio sea mayor que todos los productos de la categoría "Accesorios".
+
+---
+
+# ✅ Soluciones
+
+```sql
+-- Ejercicio 1
+
+SELECT nombre
+FROM empleados
+WHERE salario >
+(
+SELECT AVG(salario)
+FROM empleados
+);
+```
+
+```sql
+-- Ejercicio 2
+
+SELECT nombre
+FROM cursos
+WHERE duracion >
+(
+SELECT AVG(duracion)
+FROM cursos
+);
+```
+
+```sql
+-- Ejercicio 3
+
+SELECT nombre
+FROM clientes c
+WHERE EXISTS
+(
+SELECT *
+FROM pedidos p
+WHERE p.cliente_id = c.id
+);
+```
+
+```sql
+-- Ejercicio 4
+
+SELECT nombre
+FROM estudiantes
+WHERE curso_id IN
+(
+SELECT id
+FROM cursos
+WHERE activo = TRUE
+);
+```
+
+```sql
+-- Ejercicio 5
+
+SELECT nombre
+FROM productos
+WHERE precio > ALL
+(
+SELECT precio
+FROM productos
+WHERE categoria = 'Accesorios'
+);
+```
+
+---
+
+# 🎤 Preguntas de entrevista
+
+### ¿Qué es una subconsulta?
+
+Es una consulta que se encuentra dentro de otra consulta y cuyo resultado es utilizado por la consulta principal.
+
+---
+
+### ¿Qué diferencia existe entre IN y EXISTS?
+
+- `IN` compara un valor con una lista de resultados.
+- `EXISTS` solo verifica si existen registros relacionados.
+
+---
+
+### ¿Qué es una subconsulta correlacionada?
+
+Es una subconsulta que depende de la consulta externa y se ejecuta una vez por cada fila.
+
+---
+
+### ¿Qué operador utilizarías si la subconsulta devuelve varios valores?
+
+`IN`
+
+---
+
+### ¿Cuándo utilizarías EXISTS?
+
+Cuando únicamente necesitas comprobar si existen registros relacionados.
+
+---
+
+### ¿Las subconsultas pueden reemplazar a los JOIN?
+
+No siempre.
+
+Si necesitas mostrar información de varias tablas, normalmente es más adecuado utilizar un `JOIN`.
+
+---
+
+# 📚 Resumen
+
+- Una subconsulta es una consulta dentro de otra consulta.
+- SQL ejecuta primero la subconsulta y luego la consulta principal.
+- Existen diferentes tipos de subconsultas:
+  - Escalar (un valor)
+  - IN (varios valores)
+  - EXISTS (existencia de registros)
+  - Correlacionada (depende de la consulta externa)
+  - ANY (compara con cualquiera)
+  - ALL (compara con todos)
+- Pueden utilizarse en `SELECT`, `FROM`, `WHERE`, `HAVING`, `INSERT`, `UPDATE` y `DELETE`.
+- Antes de escribir la consulta completa, es recomendable ejecutar la subconsulta por separado para comprobar que devuelve el resultado esperado.
